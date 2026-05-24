@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון חיסכון לילד</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #0f172a;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            background-color: #fdfdfd;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+        }
+
+        .age-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .age-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .age-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .result-card {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .result-title {
+            font-size: 14px;
+            color: #166534;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #15803d;
+        }
+
+        .breakdown {
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--text-light);
+            text-align: right;
+            border-top: 1px dashed #bbf7d0;
+            padding-top: 10px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📈 חיסכון עתידי לילד</h1>
+    
+    <div class="input-group">
+        <label for="yield">תשואה שנתית צפויה (%)</label>
+        <input type="number" id="yield" value="7" step="0.1">
+    </div>
+
+    <div class="input-group">
+        <label for="birth">סכום חד-פעמי בלידה (₪)</label>
+        <input type="number" id="birth" value="10000" step="100">
+    </div>
+
+    <div class="input-group">
+        <label for="monthly">הפקדה חודשית שוטפת (₪)</label>
+        <input type="number" id="monthly" value="200" step="50">
+    </div>
+
+    <div class="input-group">
+        <label for="birthday">הפקדה שנתית בכל יום הולדת (₪)</label>
+        <input type="number" id="birthday" value="1000" step="100">
+    </div>
+
+    <label>תקופת חיסכון (גיל יעד)</label>
+    <div class="age-buttons">
+        <button class="age-btn active" onclick="setAge(18, this)">גיל 18</button>
+        <button class="age-btn" onclick="setAge(30, this)">גיל 30</button>
+        <button class="age-btn" onclick="setAge(40, this)">גיל 40</button>
+    </div>
+
+    <div class="result-card">
+        <div class="result-title" id="card-title">הסכום שנצבר בגיל 18</div>
+        <div class="result-value" id="total-value">₪0</div>
+        <div class="breakdown" id="breakdown-details"></div>
+    </div>
+</div>
+
+<script>
+    let currentAge = 18;
+
+    // פונקציית FV מקבילה לחלוטין למתמטיקה של אקסל
+    function fv(rate, nper, pmt, pv) {
+        if (rate === 0) return -(pv + pmt * nper);
+        let pv_factor = Math.pow(1 + rate, nper);
+        return -(pv * pv_factor + (pmt * (pv_factor - 1)) / rate);
+    }
+
+    function calculate() {
+        // משיכת הערכים מהתאים
+        let annualRate = parseFloat(document.getElementById('yield').value) / 100;
+        let birthSum = parseFloat(document.getElementById('birth').value) || 0;
+        let monthlySum = parseFloat(document.getElementById('monthly').value) || 0;
+        let birthdaySum = parseFloat(document.getElementById('birthday').value) || 0;
+        
+        let monthlyRate = annualRate / 12;
+        let totalMonths = currentAge * 12;
+
+        // חישוב שלושת הערוצים בנפרד (בדיוק כמו הפירוק שעשינו באקסל)
+        let vBirth = -fv(annualRate, currentAge, 0, birthSum);
+        let vMonthly = -fv(monthlyRate, totalMonths, monthlySum, 0);
+        let vBirthday = -fv(annualRate, currentAge, birthdaySum, 0);
+
+        let total = vBirth + vMonthly + vBirthday;
+
+        // עדכון ממשק המשתמש
+        document.getElementById('card-title').innerText = `הסכום שנצבר בגיל ${currentAge}`;
+        document.getElementById('total-value').innerText = new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(total);
+        
+        // הצגת הפירוק של הכסף לראות מאיפה הגיע הרוב
+        document.getElementById('breakdown-details').innerHTML = `
+            • מהפקדת הלידה: ${formatCurr(vBirth)}<br>
+            • מההפקדות החודשיות: ${formatCurr(vMonthly)}<br>
+            • מהפקדות ימי ההולדת: ${formatCurr(vBirthday)}
+        `;
+    }
+
+    function formatCurr(num) {
+        return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(num);
+    }
+
+    function setAge(age, element) {
+        currentAge = age;
+        document.querySelectorAll('.age-btn').forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+        calculate();
+    }
+
+    // האזנה לשינויים בקלט כדי לעדכן את התוצאה בזמן אמת (Real-time)
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', calculate);
+    });
+
+    // הרצה ראשונית בטעינה
+    calculate();
+</script>
+
+</body>
+</html>
